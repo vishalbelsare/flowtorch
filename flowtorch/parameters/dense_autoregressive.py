@@ -1,7 +1,10 @@
 # Copyright (c) Meta Platforms, Inc
 
+# pyre-unsafe
+
 import warnings
-from typing import Callable, Optional, Sequence
+from collections.abc import Callable, Sequence
+from typing import Optional
 
 import torch
 import torch.nn as nn
@@ -16,11 +19,11 @@ class DenseAutoregressive(Parameters):
         self,
         param_shapes: Sequence[torch.Size],
         input_shape: torch.Size,
-        context_shape: Optional[torch.Size],
+        context_shape: torch.Size | None,
         *,
         hidden_dims: Sequence[int] = (256, 256),
         nonlinearity: Callable[[], nn.Module] = nn.ReLU,
-        permutation: Optional[torch.LongTensor] = None,
+        permutation: torch.LongTensor | None = None,
         skip_connections: bool = False,
     ) -> None:
         super().__init__(param_shapes, input_shape, context_shape)
@@ -40,8 +43,8 @@ class DenseAutoregressive(Parameters):
         self,
         input_shape: torch.Size,
         param_shapes: Sequence[torch.Size],
-        context_shape: Optional[torch.Size],
-        permutation: Optional[torch.LongTensor],
+        context_shape: torch.Size | None,
+        permutation: torch.LongTensor | None,
     ) -> None:
         # Work out flattened input and output shapes
         param_shapes_ = list(param_shapes)
@@ -145,9 +148,9 @@ class DenseAutoregressive(Parameters):
 
     def _forward(
         self,
-        x: Optional[torch.Tensor] = None,
-        context: Optional[torch.Tensor] = None,
-    ) -> Optional[Sequence[torch.Tensor]]:
+        x: torch.Tensor | None = None,
+        context: torch.Tensor | None = None,
+    ) -> Sequence[torch.Tensor] | None:
         assert x is not None
 
         # Flatten x
@@ -178,6 +181,7 @@ class DenseAutoregressive(Parameters):
 
         # results ~ (batch_shape, param_shapes[0]), ...
         result = tuple(
+            # pyre-fixme[58]: `+` is not supported for operand types `Size` and `Size`.
             h_slice.view(batch_shape + p_shape)
             for h_slice, p_shape in zip(result, list(self.param_shapes))
         )

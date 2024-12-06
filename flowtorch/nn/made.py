@@ -1,6 +1,9 @@
 # Copyright (c) Meta Platforms, Inc
 
-from typing import Sequence, Tuple
+# pyre-unsafe
+
+from collections.abc import Sequence
+from typing import Tuple
 
 import torch
 import torch.nn as nn
@@ -38,7 +41,7 @@ def create_mask(
     hidden_dims: Sequence[int],
     permutation: torch.LongTensor,
     output_multiplier: int,
-) -> Tuple[Sequence[torch.Tensor], torch.Tensor]:
+) -> tuple[Sequence[torch.Tensor], torch.Tensor]:
     """
     Creates MADE masks for a conditional distribution
     :param input_dim: the dimensionality of the input variable
@@ -115,6 +118,7 @@ class MaskedLinear(nn.Linear):
         super().__init__(in_features, out_features, bias)
         self.register_buffer("mask", mask.data)
 
+    # pyre-fixme[14]: `forward` overrides method defined in `Linear` inconsistently.
     def forward(self, _input: torch.Tensor) -> torch.Tensor:
         masked_weight = self.weight * self.mask
         return F.linear(_input, masked_weight, self.bias)

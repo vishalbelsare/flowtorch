@@ -1,12 +1,15 @@
 # Copyright (c) Meta Platforms, Inc
 
+# pyre-unsafe
+
 import importlib
 import inspect
 import pkgutil
 from collections import OrderedDict
+from collections.abc import Callable, Mapping, Sequence
 from inspect import isclass, isfunction, signature
 from types import ModuleType
-from typing import Any, Callable, Dict, Mapping, Optional, Sequence, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 
 def get_decorators(function: Callable) -> Sequence[str]:
@@ -88,6 +91,10 @@ def generate_class_markdown(symbol_name: str, entity: Any) -> str:
         try:
             if hasattr(member_object, "__wrapped__"):
                 # decorators = get_decorators(member_object)
+                # pyre-fixme[16]: Item `BuiltinFunctionType` of
+                #  `Union[BuiltinFunctionType, ClassMethodDescriptorType, FunctionType,
+                #  MethodDescriptorType, MethodType, WrapperDescriptorType]` has no
+                #  attribute `__wrapped__`.
                 member_object = member_object.__wrapped__
         except Exception:
             pass
@@ -220,7 +227,7 @@ def generate_function_markdown(symbol_name: str, entity: Any) -> str:
     return "\n".join(markdown)
 
 
-def documentable_symbols(module: ModuleType) -> Sequence[Tuple[str, Any]]:
+def documentable_symbols(module: ModuleType) -> Sequence[tuple[str, Any]]:
     """
     Given a module object, returns a list of object name and values for documentable
     symbols (functions and classes defined in this module or a subclass)
@@ -233,8 +240,8 @@ def documentable_symbols(module: ModuleType) -> Sequence[Tuple[str, Any]]:
 
 
 def walk_packages(
-    modname: str, filter: Optional[Callable[[Any], bool]] = None
-) -> Mapping[str, Tuple[ModuleType, Sequence[Tuple[str, Any]]]]:
+    modname: str, filter: Callable[[Any], bool] | None = None
+) -> Mapping[str, tuple[ModuleType, Sequence[tuple[str, Any]]]]:
     """
     Given a base module name, return a mapping from the name of all modules
     accessible under the base to a tuple of module and symbol objects.
@@ -266,6 +273,7 @@ def walk_packages(
         else:
             finder = None
 
+        # pyre-fixme[61]: `finder` is undefined, or not always defined.
         if finder is not None:
             module = finder.load_module(this_modname)
 
@@ -277,6 +285,7 @@ def walk_packages(
             modules[this_modname] = (module, documentable_symbols(module))
 
             del module
+            # pyre-fixme[61]: `finder` is undefined, or not always defined.
             del finder
 
         else:
@@ -288,7 +297,7 @@ def walk_packages(
 def sparse_module_hierarchy(mod_names: Sequence[str]) -> Mapping[str, Any]:
     # Make list of modules to search and their hierarchy, pruning entries that
     # aren't in mod_names
-    results: Dict[str, Any] = OrderedDict()
+    results: dict[str, Any] = OrderedDict()
     this_dict = results
 
     for module in sorted(mod_names):

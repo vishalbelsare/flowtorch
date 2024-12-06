@@ -1,5 +1,7 @@
 # Copyright (c) Meta Platforms, Inc
 
+# pyre-unsafe
+
 from typing import Optional, Tuple
 
 import torch
@@ -46,6 +48,8 @@ def _select_bins(x: torch.Tensor, idx: torch.Tensor) -> torch.Tensor:
     # Note that by convention, the context variable batch dimensions must broadcast
     # over the input batch dimensions.
     if len(idx.shape) >= len(x.shape):
+        # pyre-fixme[58]: `+` is not supported for operand types `Tuple[int, ...]`
+        #  and `Size`.
         x = x.reshape((1,) * (len(idx.shape) - len(x.shape)) + x.shape)
         x = x.expand(idx.shape[:-2] + (-1,) * 2)
 
@@ -54,7 +58,7 @@ def _select_bins(x: torch.Tensor, idx: torch.Tensor) -> torch.Tensor:
 
 def _calculate_knots(
     lengths: torch.Tensor, lower: float, upper: float
-) -> Tuple[torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor]:
     """
     Given a tensor of unscaled bin lengths that sum to 1, plus the lower and upper
     limits, returns the shifted and scaled lengths plus knot positions
@@ -83,7 +87,7 @@ def monotonic_rational_spline(
     widths: torch.Tensor,
     heights: torch.Tensor,
     derivatives: torch.Tensor,
-    lambdas: Optional[torch.Tensor] = None,
+    lambdas: torch.Tensor | None = None,
     inverse: bool = False,
     bound: float = 3.0,
     min_bin_width: float = 1e-3,
@@ -91,7 +95,7 @@ def monotonic_rational_spline(
     min_derivative: float = 1e-3,
     min_lambda: float = 0.025,
     eps: float = 1e-6,
-) -> Tuple[torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor]:
     """
     Calculating a monotonic rational spline (linear or quadratic) or its inverse,
     plus the log(abs(detJ)) required for normalizing flows.
@@ -194,9 +198,7 @@ def monotonic_rational_spline(
                 inputs <= yc
             ).float() + (
                 (wc - input_lambdas * wb) * inputs + input_lambdas * wb * yb - wc * yc
-            ) * (
-                inputs > yc
-            ).float()
+            ) * (inputs > yc).float()
 
             denominator = ((wc - wa) * inputs + wa * ya - wc * yc) * (
                 inputs <= yc
@@ -268,6 +270,7 @@ def monotonic_rational_spline(
                 * theta_one_minus_theta
             )
             derivative_numerator = input_delta.pow(2) * (
+                # pyre-fixme[16]: `float` has no attribute `pow`.
                 input_derivatives_plus_one * root.pow(2)
                 + 2 * input_delta * theta_one_minus_theta
                 + input_derivatives * (1 - root).pow(2)

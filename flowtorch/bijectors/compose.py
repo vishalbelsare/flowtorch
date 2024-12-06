@@ -1,7 +1,10 @@
 # Copyright (c) Meta Platforms, Inc
+
+# pyre-unsafe
 import copy
 import warnings
-from typing import Optional, Sequence
+from collections.abc import Sequence
+from typing import Optional
 
 import flowtorch.parameters
 import torch
@@ -19,7 +22,7 @@ class Compose(Bijector):
         bijectors: Sequence[flowtorch.Lazy],
         *,
         shape: torch.Size,
-        context_shape: Optional[torch.Size] = None,
+        context_shape: torch.Size | None = None,
     ):
         assert len(bijectors) > 0
         super().__init__(None, shape=shape, context_shape=context_shape)
@@ -49,14 +52,15 @@ class Compose(Bijector):
     def forward(
         self,
         x: torch.Tensor,
-        context: Optional[torch.Tensor] = None,
+        context: torch.Tensor | None = None,
     ) -> torch.Tensor:
-        log_detJ: Optional[torch.Tensor] = None
+        log_detJ: torch.Tensor | None = None
         x_temp = x
         for bijector in self.bijectors:
             y = bijector.forward(x_temp, context)  # type: ignore
             if is_record_flow_graph_enabled() and requires_log_detJ():
                 if isinstance(y, BijectiveTensor) and y.from_forward():
+                    # pyre-fixme[16]: `BijectiveTensor` has no attribute `_log_detJ`.
                     _log_detJ = y._log_detJ
                 elif isinstance(x_temp, BijectiveTensor) and x_temp.from_inverse():
                     _log_detJ = x_temp._log_detJ
@@ -73,25 +77,29 @@ class Compose(Bijector):
         # TODO: Check that this doesn't contain bugs!
         if (
             is_record_flow_graph_enabled()
+            # pyre-fixme[61]: `y` is undefined, or not always defined.
             and not isinstance(y, BijectiveTensor)
+            # pyre-fixme[61]: `y` is undefined, or not always defined.
             and not (isinstance(x, BijectiveTensor) and y in set(x.parents()))
         ):
             # we exclude y that are bijective tensors for Compose
             y = to_bijective_tensor(x, x_temp, context, self, log_detJ, mode="forward")
+        # pyre-fixme[61]: `y` is undefined, or not always defined.
         return y
 
     def inverse(
         self,
         y: torch.Tensor,
-        x: Optional[torch.Tensor] = None,
-        context: Optional[torch.Tensor] = None,
+        x: torch.Tensor | None = None,
+        context: torch.Tensor | None = None,
     ) -> torch.Tensor:
-        log_detJ: Optional[torch.Tensor] = None
+        log_detJ: torch.Tensor | None = None
         y_temp = y
         for bijector in reversed(self.bijectors._modules.values()):  # type: ignore
             x = bijector.inverse(y_temp, context)  # type: ignore
             if is_record_flow_graph_enabled() and requires_log_detJ():
                 if isinstance(y_temp, BijectiveTensor) and y_temp.from_forward():
+                    # pyre-fixme[16]: `BijectiveTensor` has no attribute `_log_detJ`.
                     _log_detJ = y_temp._log_detJ
                 elif isinstance(x, BijectiveTensor) and x.from_inverse():
                     _log_detJ = x._log_detJ
@@ -116,7 +124,7 @@ class Compose(Bijector):
         return x  # type: ignore
 
     def log_abs_det_jacobian(
-        self, x: torch.Tensor, y: torch.Tensor, context: torch.Tensor = None
+        self, x: torch.Tensor, y: torch.Tensor, context: torch.Tensor | None = None
     ) -> torch.Tensor:
         """
         Computes the log det jacobian `log |dy/dx|` given input and output.

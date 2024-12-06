@@ -1,5 +1,7 @@
 # Copyright (c) Meta Platforms, Inc
 
+# pyre-unsafe
+
 from typing import Optional
 
 import flowtorch
@@ -11,10 +13,10 @@ from flowtorch.bijectors.ops.spline import Spline as SplineOp
 class Spline(SplineOp, Elementwise):
     def __init__(
         self,
-        params_fn: Optional[flowtorch.Lazy] = None,
+        params_fn: flowtorch.Lazy | None = None,
         *,
         shape: torch.Size,
-        context_shape: Optional[torch.Size] = None,
+        context_shape: torch.Size | None = None,
         count_bins: int = 8,
         bound: float = 3.0,
         order: str = "linear",
